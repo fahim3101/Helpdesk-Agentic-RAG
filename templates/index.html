@@ -6,85 +6,190 @@
   <title>{{ app_name }}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css?v=3" />
 </head>
 <body>
-  <div class="shell">
-    <aside class="sidebar">
-      <div>
-        <div class="brand-badge">FDE Project</div>
-        <h1>IT Support<br/>Agentic RAG</h1>
-        <p class="muted">Private company knowledge first. External web only when evidence is weak.</p>
+  <div class="app">
+
+    <!-- ============ LEFT RAIL ============ -->
+    <aside class="rail">
+      <div class="rail-top">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"></path>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <div class="brand-name">Agentic RAG</div>
+            <div class="brand-sub">IT Support Copilot</div>
+          </div>
+        </div>
+        <p class="rail-desc">
+          Private company knowledge first. Public web is used only when private evidence is weak.
+        </p>
       </div>
 
-      <div class="workflow-card">
-        <h3>LangGraph Workflow</h3>
-        <div class="flow-step">1. Route question</div>
-        <div class="flow-step">2. Retrieve private KB</div>
-        <div class="flow-step">3. Grade evidence</div>
-        <div class="flow-step">4. Web fallback if weak</div>
-        <div class="flow-step">5. Rewrite & retry</div>
-        <div class="flow-step">6. Grounded answer</div>
+      <div class="rail-block">
+        <h4 class="rail-label">Architecture</h4>
+        <ul class="stack-list">
+          <li><span class="stack-dot dot-accent"></span>Agentic loop <em>LangGraph</em></li>
+          <li><span class="stack-dot dot-accent"></span>Reasoning LLM <em>Gemini</em></li>
+          <li><span class="stack-dot dot-blue"></span>Private KB <em>FAISS</em></li>
+          <li><span class="stack-dot dot-blue"></span>Web fallback <em>DuckDuckGo</em></li>
+          <li><span class="stack-dot dot-amber"></span>Failover <em>Groq</em></li>
+        </ul>
       </div>
 
-      <button id="openUpload" class="secondary-btn">+ Add Company Document</button>
+      <div class="rail-block">
+        <h4 class="rail-label">Behaviour</h4>
+        <p class="rail-note">
+          Answers are grounded in retrieved company documents. Every decision step is
+          shown live on the right, so answers stay auditable.
+        </p>
+      </div>
+
+      <button id="openUpload" class="btn-ghost">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5v14M5 12h14"></path>
+        </svg>
+        Add Company Document
+      </button>
     </aside>
 
-    <main class="main">
+    <!-- ============ CENTER ============ -->
+    <main class="center">
       <header class="topbar">
-        <div>
-          <span class="status-dot"></span>
-          <span>Enterprise Knowledge Copilot</span>
+        <div class="top-left">
+          <span class="live-dot" id="healthDot"></span>
+          <span class="top-title">Enterprise Knowledge Copilot</span>
+          <span class="top-sub">NovaRetail</span>
         </div>
-        <span class="pill">Agentic RAG</span>
+        <div class="top-right">
+          <span class="chip chip-neutral" id="topSource">idle</span>
+          <span class="chip chip-accent">Agentic RAG</span>
+          <button id="openPipelineMobile" class="chip chip-neutral chip-btn" type="button">Pipeline</button>
+        </div>
       </header>
 
-      <section id="chat" class="chat-area">
+      <section id="chat" class="thread">
         <div class="message assistant">
-          <div class="avatar">AI</div>
+          <div class="avatar" aria-hidden="true">AI</div>
           <div class="bubble">
-            <strong>How can I help with IT support?</strong>
-            <p>Try: “How do I connect to the company VPN?” or ask a question that may require current external vendor information.</p>
+            <div class="bubble-head">How can I help with IT support?</div>
+            <p>Ask about company IT policy, devices, access or troubleshooting. Questions that need
+               live vendor information are detected and answered from the public web instead.</p>
           </div>
         </div>
       </section>
 
       <section class="composer-wrap">
-        <div class="examples">
-          <button class="example">How do I connect to the company VPN?</button>
-          <button class="example">What is our password reset policy?</button>
-          <button class="example">What is the latest Microsoft Teams outage guidance?</button>
+        <div class="examples" id="examples">
+          <button class="example" type="button">How do I connect to the company VPN?</button>
+          <button class="example" type="button">What is our password reset policy?</button>
+          <button class="example" type="button">What is the latest Microsoft Teams outage guidance?</button>
         </div>
         <form id="chatForm" class="composer">
-          <textarea id="question" rows="2" placeholder="Ask an IT support question..." required></textarea>
-          <button type="submit" class="send-btn">Ask Agent</button>
+          <textarea id="question" rows="1" placeholder="Ask an IT support question…" required></textarea>
+          <button type="submit" class="send-btn" id="sendBtn" aria-label="Send question">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 2 11 13"></path>
+              <path d="M22 2 15 22l-4-9-9-4 20-7z"></path>
+            </svg>
+          </button>
         </form>
+        <div class="composer-hint">Enter to send &middot; Shift + Enter for a new line</div>
       </section>
     </main>
 
-    <aside class="trace-panel">
-      <h2>Agent Trace</h2>
-      <p class="muted">Watch LangGraph decisions while the request runs.</p>
-      <div id="trace" class="trace-list"><div class="empty">No request yet.</div></div>
-      <div class="source-box">
-        <span>Final Source</span>
-        <strong id="sourceUsed">—</strong>
+    <!-- ============ RIGHT INSPECTOR ============ -->
+    <aside class="inspector" id="inspector">
+      <div class="inspector-head">
+        <h2>Agent Pipeline</h2>
+        <span class="chip chip-neutral" id="pipelineState">idle</span>
+      </div>
+
+      <ol class="pipeline" id="pipeline">
+        <li class="node" data-step="route">
+          <div class="node-rail"><span class="node-dot"></span></div>
+          <div class="node-body">
+            <div class="node-head"><span class="node-title">Route</span><span class="node-state">idle</span></div>
+            <div class="node-detail">Decide: company knowledge or casual chat</div>
+          </div>
+        </li>
+        <li class="node" data-step="retrieve">
+          <div class="node-rail"><span class="node-dot"></span></div>
+          <div class="node-body">
+            <div class="node-head"><span class="node-title">Retrieve</span><span class="node-state">idle</span></div>
+            <div class="node-detail">Search private FAISS knowledge base</div>
+          </div>
+        </li>
+        <li class="node" data-step="grade">
+          <div class="node-rail"><span class="node-dot"></span></div>
+          <div class="node-body">
+            <div class="node-head"><span class="node-title">Grade</span><span class="node-state">idle</span></div>
+            <div class="node-detail">Is the retrieved evidence good enough?</div>
+          </div>
+        </li>
+        <li class="node" data-step="web">
+          <div class="node-rail"><span class="node-dot"></span></div>
+          <div class="node-body">
+            <div class="node-head"><span class="node-title">Web Fallback</span><span class="node-state">idle</span></div>
+            <div class="node-detail">Only when private evidence is weak</div>
+          </div>
+        </li>
+        <li class="node" data-step="rewrite">
+          <div class="node-rail"><span class="node-dot"></span></div>
+          <div class="node-body">
+            <div class="node-head"><span class="node-title">Rewrite &amp; Retry</span><span class="node-state">idle</span></div>
+            <div class="node-detail">Improve the query, retry with a guard</div>
+          </div>
+        </li>
+        <li class="node" data-step="generate">
+          <div class="node-rail"><span class="node-dot"></span></div>
+          <div class="node-body">
+            <div class="node-head"><span class="node-title">Generate</span><span class="node-state">idle</span></div>
+            <div class="node-detail">Grounded answer with citations</div>
+          </div>
+        </li>
+      </ol>
+
+      <div class="inspector-scroll">
+        <h4 class="rail-label">Event log</h4>
+        <div id="trace" class="trace-list">
+          <div class="empty">No request yet.</div>
+        </div>
+      </div>
+
+      <div class="source-card" id="sourceCard">
+        <span class="source-label">Final Source</span>
+        <strong id="sourceUsed">&mdash;</strong>
+        <p id="sourceHint">Ask a question to see which knowledge source answered it.</p>
       </div>
     </aside>
+
   </div>
 
+  <!-- ============ UPLOAD MODAL ============ -->
   <div id="uploadModal" class="modal hidden">
     <div class="modal-card">
-      <div class="modal-head"><h2>Ingest Company Document</h2><button id="closeUpload">×</button></div>
-      <p class="muted">Upload PDF, TXT, Markdown, or DOCX. The document is chunked, embedded, and indexed into Pinecone.</p>
-      <input id="adminKey" type="password" placeholder="Admin API key" />
+      <div class="modal-head">
+        <h2>Ingest Company Document</h2>
+        <button id="closeUpload" type="button" aria-label="Close">&times;</button>
+      </div>
+      <p class="muted">
+        Upload a PDF, TXT, Markdown or DOCX file. It is parsed, chunked, embedded with Gemini
+        and indexed into the local FAISS vector store &mdash; immediately searchable.
+      </p>
+      <input id="adminKey" type="password" placeholder="Admin API key" autocomplete="off" />
       <input id="fileInput" type="file" accept=".pdf,.txt,.md,.docx" />
-      <button id="uploadBtn" class="send-btn full">Index Document</button>
+      <button id="uploadBtn" class="send-btn full" type="button">Index Document</button>
       <div id="uploadStatus" class="upload-status"></div>
     </div>
   </div>
 
-  <script src="/static/js/app.js?v=2"></script>
+  <script src="/static/js/app.js?v=3"></script>
 </body>
 </html>

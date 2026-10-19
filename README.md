@@ -4,6 +4,12 @@ An end-to-end **Forward Deployed Engineer (FDE) project** that turns a notebook-
 
 **100% free. No paid API. No Ollama. No local model download.** One free Google key runs the whole thing; an optional free Groq key acts as automatic fallback.
 
+### 🔗 Live Demo
+
+**https://it-support-agentic-rag.onrender.com**
+
+Deployed straight from this repo on Render (free tier) using the included `Dockerfile` + `render.yaml` Blueprint. The free instance sleeps after 15 minutes of inactivity, so the first request can take ~30–60 seconds to wake up.
+
 ---
 
 ## 1. Business Problem
@@ -560,6 +566,9 @@ Uploads a document and adds its chunks to local FAISS.
 
 The repo ships with `render.yaml` (Blueprint) and a tested `Dockerfile`.
 
+> **Live instance:** https://it-support-agentic-rag.onrender.com
+> Deployed from this repo — after a `git push`, use **Manual Deploy → Deploy latest commit** to redeploy.
+
 1. Go to **dashboard.render.com → New + → Blueprint**, connect the GitHub repo, Apply.
 2. Fill `GOOGLE_API_KEYS` and `GROQ_API_KEY` in the Environment tab (`ADMIN_API_KEY` auto-generates).
 3. **Deploy Blueprint** → wait 3–6 min → live URL appears.
@@ -577,5 +586,6 @@ The repo ships with `render.yaml` (Blueprint) and a tested `Dockerfile`.
 | `Address already in use :8080` | An old server still holds the port — stop other terminals / kill leftover `python run.py` processes |
 | UI shows old errors after a code fix | Hard-refresh the browser (`Ctrl+F5`); HTML/JS/CSS changes need no server restart, `.py`/`.env` changes need a restart |
 | Page text looks like symbols | Browser font setting (e.g. Wingdings) — reset `chrome://settings/fonts` to Arial/Times |
+| Live site slow / `503` on first hit | Free Render instance was asleep — the first request wakes it (~30–60 s), later ones are fast |
 
 ---
