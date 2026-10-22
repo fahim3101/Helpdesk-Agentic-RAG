@@ -4,6 +4,7 @@ from ddgs import DDGS
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import StateGraph, START, END
 from app.core.config import get_settings
+from app.core.guardrails import safe_refusal, validate_input, validate_output
 from app.rag.state import AgentState, RouteDecision, EvidenceGrade
 from app.rag.vectorstore import get_retriever
 
@@ -154,6 +155,16 @@ Do not invent policy details. Mention that the answer is based on the company's 
 Question: {state['question']}\n\nPrivate KB:\n{context}
 """).content
     answer = _text(answer)
+    ok, msg = validate_output(answer)
+    if not ok:
+        answer = safe_refusal(state["question"])
+        return {
+            "answer": answer,
+            "source_used": "insufficient_evidence",
+            "citations": [],
+            "trace": add_trace(state, f"Output guardrail → {msg}"),
+        }
+
     citations = []
     seen = set()
     for d in state["kb_docs"]:
@@ -170,11 +181,27 @@ Answer ONLY from the web evidence below. Clearly say this is external web inform
 Question: {state['question']}\n\nWeb evidence:\n{state['web_results']}
 """).content
     answer = _text(answer)
+    ok, msg = validate_output(answer)
+    if not ok:
+        answer = safe_refusal(state["question"])
+        return {
+            "answer": answer,
+            "source_used": "insufficient_evidence",
+            "trace": add_trace(state, f"Output guardrail → {msg}"),
+        }
     return {"answer": answer, "source_used": "web_search", "trace": add_trace(state, "Answer generation → WEB SEARCH")}
 
 def direct_answer(state: AgentState):
     raw = llm().invoke(f"Respond briefly and naturally to: {state['question']}").content
     answer = _text(raw)
+    ok, msg = validate_output(answer)
+    if not ok:
+        answer = safe_refusal(state["question"])
+        return {
+            "answer": answer,
+            "source_used": "direct",
+            "trace": add_trace(state, f"Output guardrail → {msg}"),
+        }
     return {"answer": answer, "source_used": "direct", "trace": add_trace(state, "Direct response → no retrieval")}
 
 def insufficient(state: AgentState):
@@ -230,6 +257,10 @@ def _is_quota_error(exc: Exception) -> bool:
 
 
 def ask(question: str):
+    ok, error = validate_input(question)
+    if not ok:
+        raise ValueError(error)
+
     initial: AgentState = {
         "question": question,
         "current_query": question,
