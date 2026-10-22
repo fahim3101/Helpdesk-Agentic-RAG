@@ -81,6 +81,9 @@ def validate_output(answer: str) -> Tuple[bool, Optional[str]]:
     if re.fullmatch(r"i\s+can\s+help\s+with\s+that\.?", lower):
         return False, "The answer was too generic. Please provide a concrete, specific response based on the company KB or verified web evidence."
 
+    if re.search(r"\b(i\s+am\s+not\s+sure|maybe\s+try\s+again|try\s+again|not\s+sure|uncertain|generic\s+placeholder|placeholder\s+answer)\b", lower):
+        return False, "The answer was too generic or uncertain to be safe and specific enough."
+
     if "lorem ipsum" in lower or "placeholder" in lower:
         return False, "The answer was not a valid support response."
 
