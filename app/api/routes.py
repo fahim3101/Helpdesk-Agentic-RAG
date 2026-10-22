@@ -2,6 +2,7 @@ from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, HTTPException, Header
 from pydantic import BaseModel, Field
 from app.core.config import get_settings
+from app.core.guardrails import validate_input
 from app.rag.workflow import ask
 from app.rag.vectorstore import add_documents 
 from app.services.ingestion import load_file, chunk_documents, SUPPORTED
@@ -21,6 +22,10 @@ def health():
 
 @router.post("/chat")
 def chat(payload: ChatRequest):
+    ok, error = validate_input(payload.question)
+    if not ok:
+        raise HTTPException(status_code=400, detail=error)
+
     try:
         result = ask(payload.question)
         write_audit(payload.question, result["source_used"], result.get("trace", []))
