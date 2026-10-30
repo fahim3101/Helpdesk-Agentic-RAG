@@ -29,6 +29,19 @@ def llm():
 
     return _gemini_llm(next_google_key())
 
+
+def structured(llm_obj, schema):
+    """Structured output that also works on the Groq fallback.
+
+    Groq's gpt-oss models do not reliably emit tool calls, so JSON mode is
+    used there instead. Gemini keeps the default (function calling) path.
+    """
+    from langchain_groq import ChatGroq
+
+    if isinstance(llm_obj, ChatGroq):
+        return llm_obj.with_structured_output(schema, method="json_mode")
+    return llm_obj.with_structured_output(schema)
+
 def groq_llm():
     """Optional free fallback (console.groq.com, no card)."""
     global _groq_llm
@@ -66,7 +79,7 @@ def _text(content) -> str:
     return str(content)
 
 def route_question(state: AgentState):
-    router = llm().with_structured_output(RouteDecision)
+    router = structured(llm(), RouteDecision)
     decision = router.invoke(f"""
 You route messages for an enterprise IT support assistant.
 Use kb for questions about company IT policies, VPN, password reset, MFA, laptop setup,
@@ -85,7 +98,7 @@ def retrieve_kb(state: AgentState):
     return {"kb_docs": docs, "trace": add_trace(state, f"Private KB retrieval → {len(docs)} chunks")}
 
 def grade_kb(state: AgentState):
-    grader = llm().with_structured_output(EvidenceGrade)
+    grader = structured(llm(), EvidenceGrade)
     context = "\n\n".join(f"Source: {d.metadata.get('source','unknown')}\n{d.page_content}" for d in state["kb_docs"])
     grade = grader.invoke(f"""
 You grade evidence for an enterprise IT support assistant.
@@ -117,7 +130,7 @@ def search_web(state: AgentState):
     }
 
 def grade_web(state: AgentState):
-    grader = llm().with_structured_output(EvidenceGrade)
+    grader = structured(llm(), EvidenceGrade)
     grade = grader.invoke(f"""
 Question: {state['question']}
 Web evidence:\n{state['web_results']}

@@ -1,12 +1,16 @@
 from pathlib import Path
 from app.core.config import get_settings
-from app.services.ingestion import load_file, chunk_documents
+from app.services.ingestion import load_file, chunk_documents, SUPPORTED
 from app.rag.vectorstore import add_documents
 
 settings = get_settings()
 
+index_dir = Path(settings.faiss_index_dir)
+for name in ("index.faiss", "index.pkl"):
+    (index_dir / name).unlink(missing_ok=True)
+
 folder = Path(settings.sample_kb_dir)
-files = [p for p in folder.iterdir() if p.is_file()]
+files = [p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in SUPPORTED]
 
 all_docs = []
 

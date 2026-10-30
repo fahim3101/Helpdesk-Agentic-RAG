@@ -37,7 +37,7 @@ def main() -> int:
     print(f"Evaluating {len(selected_rows)} rows.")
     print_metric_overview()
 
-    report, _ = run_ragas_evaluation(selected_rows, limit=args.limit)
+    report, _ = run_ragas_evaluation(selected_rows)
     json_path, csv_path = save_results(report, results_dir)
 
     print("\nEvaluation results saved to:")

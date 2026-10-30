@@ -38,6 +38,15 @@ class ResultSavingTests(unittest.TestCase):
 
         self.assertIsInstance(llm, InstructorBaseRagasLLM)
         self.assertIsInstance(embeddings, BaseRagasEmbedding)
+        self.assertFalse(llm.is_async)
+
+    def test_build_llm_uses_stable_default_model_and_fallback_candidates(self):
+        settings = __import__("rag_evaluation.config", fromlist=["get_settings"]).get_settings()
+        self.assertTrue(settings.gemini_model)
+        self.assertTrue(settings.gemini_fallback_models)
+        self.assertIn(settings.gemini_model, settings.gemini_fallback_models)
+        self.assertNotIn("gemini-2.5-flash", settings.gemini_fallback_models)
+        self.assertNotIn("gemini-2.5-flash-lite", settings.gemini_fallback_models)
 
 
 if __name__ == "__main__":
