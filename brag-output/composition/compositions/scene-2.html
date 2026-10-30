@@ -1,0 +1,16 @@
+<template>
+<style>
+#root{position:absolute;inset:0;width:1920px;height:1080px;overflow:hidden}
+#art-2{position:absolute;inset:0;width:1920px;height:1080px;object-fit:cover;transform-origin:50% 50%}
+</style>
+<div data-hf-id="hf-by9e" id="root" data-composition-id="scene-2" data-width="1920" data-height="1080">
+  <img data-hf-id="hf-0mjm" id="art-2" src="assets/scene-02.png" alt="">
+</div>
+<script>
+const tl=gsap.timeline({paused:true});
+tl.fromTo("#art-2",{opacity:0},{opacity:1,duration:0.22,ease:"none"},0);
+tl.fromTo("#art-2",{scale:1},{scale:1.045,duration:3.90,ease:"none"},0);
+tl.to("#art-2",{opacity:0,duration:0.22,ease:"none"},3.68);
+window.__timelines["scene-2"]=tl;
+</script>
+</template>

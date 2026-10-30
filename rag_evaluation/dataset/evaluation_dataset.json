@@ -1,0 +1,50 @@
+[
+  {
+    "user_input": "How do I connect to the company VPN from home?",
+    "reference": "Use the company VPN client, sign in with your company credentials, complete MFA, and select the appropriate corporate gateway. If the connection fails, check your internet connectivity, restart the VPN client, and try another gateway. If the issue persists, open an IT ticket with a screenshot of the error."
+  },
+  {
+    "user_input": "I forgot my password. What should I do?",
+    "reference": "Use the self-service identity portal for a normal password reset. If the account is locked after repeated failed attempts or the self-service flow fails, contact the IT Service Desk for help. Do not share passwords or MFA codes with support staff."
+  },
+  {
+    "user_input": "Can employees install software without approval?",
+    "reference": "Employees should install business software only from the company Software Portal. Unlisted software requires manager approval and IT security review. Administrator rights are not granted automatically for unapproved software."
+  },
+  {
+    "user_input": "What should I do if my laptop is lost or stolen?",
+    "reference": "Immediately report the incident to the IT Service Desk and your manager, provide the asset tag if available, and share the last known location. IT will coordinate device lock or wipe procedures and work with Security. Do not attempt to recover the device yourself."
+  },
+  {
+    "user_input": "Do I need MFA for email and VPN access?",
+    "reference": "MFA is mandatory for email, VPN, cloud administration, and other protected company systems. Approved methods include the company authenticator app and registered hardware security keys. SMS should only be used when explicitly enabled as a recovery option."
+  },
+  {
+    "user_input": "One user cannot send or receive email. What should I check?",
+    "reference": "Determine whether the problem affects one user or many users. For a single user, sign out and back in, verify mailbox quota, and test the web client. Check network connectivity and the service status dashboard. If many users are affected, escalate as a service incident instead of troubleshooting each user individually."
+  },
+  {
+    "user_input": "My laptop is running slowly. What is the first troubleshooting step?",
+    "reference": "Check CPU, memory, storage usage, startup applications, operating system updates, and endpoint security scan status. Do not disable security agents as a shortcut. Escalate if hardware diagnostics show a failure or repeated shutdowns continue after software fixes."
+  },
+  {
+    "user_input": "How are IT tickets prioritized?",
+    "reference": "P1 is reserved for company-wide outages or critical security incidents, P2 is for major team blockers without a workaround, P3 is for an individual user impact with limited workaround, and P4 is for standard requests or low-impact issues."
+  },
+  {
+    "user_input": "When should I escalate a service incident?",
+    "reference": "Escalate when many users are affected or when the issue is clearly a service outage. Do not ask each user to reinstall software when the problem appears widespread. Use the service status dashboard and escalate suspected incidents."
+  },
+  {
+    "user_input": "What are the password requirements?",
+    "reference": "Company passwords must be at least 14 characters. Use the self-service identity portal for normal resets and never share passwords or MFA codes with support personnel."
+  },
+  {
+    "user_input": "What happens after five failed login attempts?",
+    "reference": "Accounts may be temporarily locked after five failed login attempts. Use self-service recovery or contact the IT Service Desk if recovery fails."
+  },
+  {
+    "user_input": "What should I do if repeated shutdowns continue on a laptop?",
+    "reference": "Check diagnostics, updates, startup applications, and endpoint security status. Escalate if the hardware diagnostics report failure or repeated shutdowns continue after software remediation."
+  }
+]
