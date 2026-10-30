@@ -1,0 +1,219 @@
+RAG EVALUATION - WHY, WHAT, AND HOW TO RUN IT
+=============================================
+
+This note explains the evaluation module in `rag_evaluation/`: why it exists,
+what happens if we do not use it, what its output means, and what each run
+command does.
+
+
+1. WHAT THIS EVALUATION ACTUALLY DOES
+-------------------------------------
+It does NOT ask a separate model to "pretend" to be our RAG system.
+
+For every question in the dataset it:
+  1. calls the real application pipeline (`app.rag.workflow.ask`), which does
+     routing -> private KB retrieval -> evidence grading -> web fallback ->
+     answer generation exactly as in production;
+  2. calls the real retriever (`get_retriever()`) to capture the exact context
+     chunks that were available;
+  3. puts the real question, real answer, real retrieved contexts, and the
+     human-written reference answer into a Ragas dataset;
+  4. scores that data with four Ragas metrics.
+
+So the report measures the system we actually ship, not a mock.
+
+
+2. WHY WE USED A RAG EVALUATION FRAMEWORK (RAGAS)
+--------------------------------------------------
+A RAG system has two independent failure modes:
+  - retrieval failure: the right document was never found;
+  - generation failure: the answer is wrong, vague, or not grounded in the
+    retrieved text (hallucination).
+
+Looking at answers by hand cannot separate these two, and cannot scale. Ragas
+scores them separately with standard, well-known metrics, so the team can tell
+"the retriever is weak" from "the model is making things up".
+
+For an enterprise helpdesk the stakes are concrete: if the copilot tells an
+employee the wrong VPN or MFA procedure, it creates security and support
+incidents. Evaluation is how we turn "it looks fine" into "we measured it".
+
+
+3. WHAT IF WE DO NOT USE IT
+---------------------------
+Without an evaluation harness:
+  - we cannot prove the answer is grounded in company documents;
+  - we cannot detect hallucinations before employees see them;
+  - we cannot tell whether a bad answer came from retrieval or from the LLM;
+  - every change (chunk size, top_k, model, prompt, new documents) is a blind
+    change with no before/after number;
+  - regressions are invisible: a prompt tweak that fixes one question can
+    silently break five others;
+  - "it works on my one demo question" becomes the only evidence;
+  - for an FDE deliverable there is no measurable acceptance criterion for the
+    customer, only impressions;
+  - quota/availability failures can look like quality problems, or worse,
+    quality problems can be hidden by retries.
+
+In short: without evaluation the product is unverifiable. It may work, but
+nobody can demonstrate how well or prove that a change improved it.
+
+
+4. HOW THE OUTPUT HELPS (AND WHY THESE FOUR METRICS)
+----------------------------------------------------
+The report is written to:
+  rag_evaluation/results/ragas_evaluation_results.json
+  rag_evaluation/results/ragas_evaluation_results.csv
+
+Each row is one dataset question with:
+  user_input, response, retrieved_contexts, reference,
+  faithfulness, answer_relevancy, context_precision, context_recall
+
+What each metric tells us and what to do when it is low:
+
+  faithfulness (0..1)
+    Are the claims in the answer supported by the retrieved contexts?
+    Low  -> hallucination / unsupported claims.
+    Fix  -> tighten the generation prompt, forbid outside knowledge, improve
+            evidence grading before answering.
+
+  answer_relevancy (0..1)
+    Does the answer address the actual question?
+    Low  -> generic, off-topic, or evasive answer.
+    Fix  -> improve prompts, routing, or the reference/answer style.
+
+  context_precision (0..1)
+    Are the useful retrieved chunks ranked at the top?
+    Low  -> the retriever returns noise before the good chunk.
+    Fix  -> tune top_k, chunk size/overlap, embeddings, or add metadata
+            filtering / reranking.
+
+  context_recall (0..1)
+    Do the retrieved contexts contain the information needed to answer?
+    Low  -> retrieval missed key evidence.
+    Fix  -> better chunking, more top_k, richer documents, query rewriting.
+
+Why this helps:
+  - it separates retrieval problems from generation problems;
+  - it gives a before/after number for every change;
+  - it makes the demo auditable: teacher/customer sees the question, the
+    retrieved evidence, the answer, and a score for each dimension;
+  - it supports honest claims. Instead of "the bot is good", we can say
+    "faithfulness 0.95, recall 1.0, precision 0.7, so ranking is the weak
+    point".
+
+Note: a high score is not proof of perfection. The dataset is illustrative
+(12 questions) and should be expanded with verified company policies before
+production use.
+
+
+5. IMPORTANT DESIGN DETAILS
+---------------------------
+  - Model fallback: evaluation tries a chain of Gemini models
+    (gemini-3.5-flash, gemini-3.1-flash-lite, gemini-3.6-flash,
+    gemini-flash-lite-latest). 503 (overloaded), 429 (quota/rate limit), and
+    404 (retired model) automatically move to the next model.
+  - The application has its own fallback: Gemini -> Groq. So the evaluation
+    still collects answers if Gemini is exhausted.
+  - The JSON report is written atomically (temp file + rename), so a failed run
+    never leaves a 0-byte file.
+  - `raise_exceptions=False` means one failed metric yields NaN for that cell
+    instead of throwing away the whole report.
+  - Free-tier reality: per-model limits are small (for example 20/day on
+    gemini-3.6-flash, 500/day on flash-lite, and ~5 requests/minute per model).
+    A full 12-row run can take 20-40+ minutes. Use `--limit` when testing.
+
+
+6. RUN COMMANDS - WHAT EACH ONE DOES
+------------------------------------
+Activate the environment first (otherwise you get "module not found"):
+
+  source .venv/bin/activate
+
+------------------------------------------------------------------
+A. Unit tests (no network, no API calls, fast)
+------------------------------------------------------------------
+  python -m unittest discover -s tests -v
+      Runs the application guardrail tests (input/output safety).
+
+  python -m unittest discover -s rag_evaluation/tests -v
+      Runs evaluation tests: dataset loading/validation, result saving,
+      and the model-configuration checks.
+
+  Use these to prove the safety/validation logic works without spending quota.
+
+------------------------------------------------------------------
+B. Rebuild the private knowledge index
+------------------------------------------------------------------
+  python ingest_sample_kb.py
+      Deletes the old FAISS index (data/faiss_index/index.faiss and index.pkl),
+      loads every supported file in data/sample_kb/, chunks it, embeds it with
+      Gemini, and writes a fresh index.
+      This script always does a clean rebuild, so repeated runs never create
+      duplicate vectors. Expected: "Indexed 2 files -> 5 chunks".
+      Run this after changing the sample documents or if retrieval looks odd.
+
+------------------------------------------------------------------
+C. Run the evaluation
+------------------------------------------------------------------
+  python -m rag_evaluation.run_evaluation
+      Runs the FULL dataset (currently 12 questions): collect real answers and
+      contexts, score all four Ragas metrics, print a preview, and write the
+      JSON + CSV report. Slow and quota-heavy; do this for a real report.
+
+  python -m rag_evaluation.run_evaluation --limit 1
+      Same pipeline but only the first question. Fast smoke test: proves the
+      wiring works without burning the daily quota. Use this during a demo.
+
+  python -m rag_evaluation.run_evaluation --limit 3
+      Three questions. A compromise: slightly more representative, still
+      reasonable on the free tier.
+
+  python -m rag_evaluation.run_evaluation --dataset path/to/dataset.json
+      Uses a different dataset file (same schema: a JSON list of objects with
+      "user_input" and "reference"). Use this when the teacher/customer gives
+      their own question set.
+
+  python -m rag_evaluation.run_evaluation --results-dir path/to/out
+      Writes the JSON/CSV report to a different directory (useful for keeping
+      separate runs, e.g. before/after a retrieval change).
+
+  Options combine, for example:
+      python -m rag_evaluation.run_evaluation --limit 2 --results-dir runs/baseline
+
+------------------------------------------------------------------
+D. Inspect the result files
+------------------------------------------------------------------
+  cat rag_evaluation/results/ragas_evaluation_results.json
+      Full report as JSON (one object per question).
+
+  cat rag_evaluation/results/ragas_evaluation_results.csv
+      Same report as a table (easier to open in Excel / show on screen).
+
+  python -c "import json; d=json.load(open('rag_evaluation/results/ragas_evaluation_results.json')); print(len(d), 'rows'); print({k:d[0][k] for k in ('faithfulness','answer_relevancy','context_precision','context_recall')})"
+      Quick summary: number of rows + the first row's four scores.
+
+------------------------------------------------------------------
+E. Run the application itself (not evaluation)
+------------------------------------------------------------------
+  python run.py
+      Starts the FastAPI server on http://127.0.0.1:8080. Ask questions in the
+      UI to see the live trace (router -> retrieval -> grade -> answer).
+
+  curl -s http://127.0.0.1:8080/api/health
+      Health check.
+
+  curl -s -X POST http://127.0.0.1:8080/api/chat \
+    -H 'Content-Type: application/json' \
+    -d '{"question":"How do I connect to the company VPN from home?"}'
+      Calls the same pipeline from the command line (useful for a quick check
+      without opening the browser).
+
+
+7. WHAT TO SAY IF A RUN FAILS ON QUOTA
+--------------------------------------
+All models exhausted is a free-tier limit, not a code failure. Say:
+"The harness is working; the free Gemini quota for today is exhausted, so it
+stopped. Here is the saved report from the completed run, and the code shows
+the model rotation + Groq fallback." Then show the JSON/CSV and explain the
+four metrics.
