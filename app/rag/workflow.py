@@ -100,20 +100,28 @@ def after_kb(state: AgentState) -> Literal["generate_from_kb", "search_web"]:
     return "generate_from_kb" if state["kb_grade"] == "good" else "search_web"
 
 def search_web(state: AgentState):
-    # 100% free, no API key: DuckDuckGo
+    # 100% free, no API key: DuckDuckGo. The free endpoint rate-limits
+    # often (HTTP 202/403/429), so treat any failure as "no results" and
+    # let grade_web -> rewrite/insufficient handle it instead of 500ing.
     lines, citations = [], []
-    with DDGS() as ddgs:
-        for item in ddgs.text(state["current_query"], max_results=5):
-            title, url, content = item.get("title", ""), item.get("href", ""), item.get("body", "")
-            lines.append(f"Title: {title}\nURL: {url}\nContent: {content}")
-            citations.append({"title": title or url, "url": url, "type": "web"})
+    try:
+        with DDGS() as ddgs:
+            for item in ddgs.text(state["current_query"], max_results=5):
+                title, url, content = item.get("title", ""), item.get("href", ""), item.get("body", "")
+                lines.append(f"Title: {title}\nURL: {url}\nContent: {content}")
+                citations.append({"title": title or url, "url": url, "type": "web"})
+    except Exception as exc:
+        logger.warning("Web search failed (degrading to no results): %s", exc)
     if not lines:
         lines.append("No web results found.")
+        trace_msg = "Web fallback → search unavailable, no results"
+    else:
+        trace_msg = f"Web fallback → DuckDuckGo search ({len(lines)} results)"
     return {
         "web_results": "\n\n".join(lines),
         "citations": citations,
         "source_used": "web",
-        "trace": add_trace(state, "Web fallback → DuckDuckGo search"),
+        "trace": add_trace(state, trace_msg),
     }
 
 def grade_web(state: AgentState):
