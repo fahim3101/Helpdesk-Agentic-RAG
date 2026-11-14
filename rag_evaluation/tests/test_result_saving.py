@@ -2,6 +2,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import pandas as pd
 from ragas.embeddings import BaseRagasEmbedding
@@ -32,7 +33,7 @@ class ResultSavingTests(unittest.TestCase):
             self.assertIn("user_input", payload[0])
 
     def test_ragas_uses_native_wrappers_for_google_models(self):
-        with unittest.mock.patch("rag_evaluation.evaluation.ragas_evaluator._resolve_google_key", return_value="fake-key"):
+        with mock.patch("rag_evaluation.evaluation.ragas_evaluator._resolve_google_key", return_value="fake-key"):
             llm = build_llm()
             embeddings = build_embeddings()
 
