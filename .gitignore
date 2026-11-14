@@ -166,6 +166,16 @@ graphify-out/*
 !graphify-out/graph.html
 .vscode/
 
+# Uploaded company documents - may contain sensitive internal content, never commit
+uploads/
+
+# Demo/brag media assets - large binaries (12MB+), keep out of the repo.
+# The small docs (brag-plan.md, composition-brief.md, share-copy.txt) stay tracked.
+brag-output/brag.mp4
+brag-output/brag.jpg
+brag-output/composition/
+brag-output/render_video.py
+
 # Spyder project settings
 .spyderproject
 .spyproject
