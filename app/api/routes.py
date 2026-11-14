@@ -1,3 +1,5 @@
+import logging
+import secrets
 from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, HTTPException, Header
 from pydantic import BaseModel, Field
@@ -7,6 +9,8 @@ from app.rag.workflow import ask
 from app.rag.vectorstore import add_documents 
 from app.services.ingestion import load_file, chunk_documents, SUPPORTED
 from app.services.audit import write_audit
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api")
 settings = get_settings()
@@ -40,13 +44,19 @@ def chat(payload: ChatRequest):
         }
 
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        # Log the real cause server-side; never leak internals (paths, keys,
+        # upstream payloads) back to the caller.
+        logger.exception("Chat request failed for question=%r", payload.question)
+        raise HTTPException(
+            status_code=500,
+            detail="The assistant could not complete this request. Please try again.",
+        ) from exc
 
 
 
 @router.post("/ingest")
 async def ingest(file: UploadFile = File(...), x_admin_key: str = Header(default="")):
-    if x_admin_key != settings.admin_api_key:
+    if not secrets.compare_digest(x_admin_key.encode("utf-8"), settings.admin_api_key.encode("utf-8")):
         raise HTTPException(status_code=401, detail="Invalid admin key")
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in SUPPORTED:
