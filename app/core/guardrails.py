@@ -64,13 +64,29 @@ def validate_input(question: str) -> Tuple[bool, Optional[str]]:
     return True, None
 
 
+MIN_OUTPUT_LENGTH = 12
+
+# Uncertainty/generic phrasing is only a problem when it is the answer's
+# stance (i.e. it opens the reply). A support answer that merely mentions
+# "not sure" or "try again" in passing is still useful and must not be
+# rejected, e.g. "If you are not sure which gateway to pick, choose the
+# closest one."
+UNCERTAIN_ANSWER_PATTERN = (
+    r"^(i\s+am\s+not\s+sure|i\s+do\s+not\s+know|i\s+don't\s+know|not\s+sure|"
+    r"maybe\s+try\s+again|try\s+again|unclear|uncertain|"
+    r"generic\s+placeholder|placeholder\s+answer)"
+)
+
+
 def validate_output(answer: str) -> Tuple[bool, Optional[str]]:
     cleaned = _normalize(answer)
 
     if not cleaned:
         return False, "The generated answer was empty. Please retry with a specific IT support question."
 
-    if len(cleaned) < 25:
+    # Floor is deliberately low: short greetings ("Hi! How can I help?") are
+    # valid replies, so length alone must not reject them.
+    if len(cleaned) < MIN_OUTPUT_LENGTH:
         return False, "The answer was too short to be specific or useful."
 
     lower = cleaned.lower()
@@ -81,11 +97,11 @@ def validate_output(answer: str) -> Tuple[bool, Optional[str]]:
     if re.fullmatch(r"i\s+can\s+help\s+with\s+that\.?", lower):
         return False, "The answer was too generic. Please provide a concrete, specific response based on the company KB or verified web evidence."
 
-    if re.search(r"\b(i\s+am\s+not\s+sure|maybe\s+try\s+again|try\s+again|not\s+sure|uncertain|generic\s+placeholder|placeholder\s+answer)\b", lower):
+    if re.search(UNCERTAIN_ANSWER_PATTERN, lower):
         return False, "The answer was too generic or uncertain to be safe and specific enough."
 
-    if "lorem ipsum" in lower or "placeholder" in lower:
-        return False, "The answer was not a valid support response."
+    if "lorem ipsum" in lower or re.search(r"\bplaceholder\b", lower):
+        return False, "The answer looked like generic placeholder text and was not a specific support response."
 
     return True, None
 

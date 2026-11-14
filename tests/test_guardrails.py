@@ -77,6 +77,53 @@ class GuardrailTests(unittest.TestCase):
                 self.assertTrue(ok, msg)
                 self.assertIsNone(msg)
 
+    def test_short_greeting_answer_is_accepted(self):
+        # A greeting reply is legitimately short - it must not be rejected
+        # by the output guardrail and replaced with a safety refusal.
+        short_replies = [
+            "Hi! How can I help?",
+            "Hello! How can I help you today?",
+            "Hey there! What can I do for you?",
+        ]
+
+        for reply in short_replies:
+            with self.subTest(reply=reply):
+                ok, msg = validate_output(reply)
+                self.assertTrue(ok, msg)
+                self.assertIsNone(msg)
+
+    def test_support_answer_mentioning_uncertainty_is_accepted(self):
+        # Only an answer whose stance is uncertain is rejected. A passing
+        # mention inside real troubleshooting guidance must be allowed.
+        legit_answers = [
+            "If you are not sure which gateway to pick, choose the closest one.",
+            "Restart the VPN client and try again with a different gateway.",
+            "If self-service recovery fails, contact the IT Service Desk for help.",
+        ]
+
+        for answer in legit_answers:
+            with self.subTest(answer=answer):
+                ok, msg = validate_output(answer)
+                self.assertTrue(ok, msg)
+                self.assertIsNone(msg)
+
+    def test_uncertain_answer_stance_is_rejected(self):
+        uncertain_answers = [
+            "I am not sure, but maybe try again.",
+            "Not sure about this one.",
+            "Try again later.",
+            "Unclear, please provide more details.",
+        ]
+
+        for answer in uncertain_answers:
+            with self.subTest(answer=answer):
+                ok, msg = validate_output(answer)
+                self.assertFalse(ok)
+                self.assertTrue(
+                    "specific" in msg.lower() or "safe" in msg.lower() or "generic" in msg.lower(),
+                    msg,
+                )
+
     def test_guardrails_are_stable_under_many_repeated_runs(self):
         valid_prompts = [
             "How do I connect to the company VPN from home?",
