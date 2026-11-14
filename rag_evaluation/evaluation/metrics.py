@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ragas.metrics import AnswerRelevancy, ContextPrecision, ContextRecall, Faithfulness
+from ragas.metrics.collections import AnswerRelevancy, ContextPrecision, ContextRecall, Faithfulness
 
 
 def build_evaluation_metrics(llm, embeddings=None):

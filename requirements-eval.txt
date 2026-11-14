@@ -1,0 +1,25 @@
+# Evaluation-only dependencies (RAGAS quality scoring).
+#
+# The app itself does NOT need these - they are only used by the
+# rag_evaluation/ package to score the RAG pipeline.
+#
+#   pip install -r requirements.txt -r requirements-eval.txt
+#   python rag_evaluation/run_evaluation.py
+#
+# Keep this separate from requirements.txt so the production Docker image
+# stays small and the deployed app keeps using the free Gemini-only stack.
+#
+# NOTE: run the evaluation on Python 3.11-3.13. ragas pulls in scikit-network,
+# which has no wheels for CPython 3.14 and would try to build from source
+# (needs the MSVC toolchain on Windows). Linux/Docker is unaffected.
+
+ragas==0.4.4
+pandas==2.3.3
+
+# Must stay on the 2.x line: langchain-google-genai 4.4.2 (the app's LLM
+# provider) requires google-genai>=2.20.0,<3.0.0. Installing 3.x breaks the
+# running app, so both share this pin.
+google-genai==2.34.0
+
+# Required by ragas for structured-output generation (adapter="instructor").
+instructor==1.17.0
